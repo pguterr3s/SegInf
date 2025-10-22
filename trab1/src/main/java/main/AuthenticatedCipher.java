@@ -4,11 +4,9 @@ import javax.crypto.*;
 import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.spec.IvParameterSpec;
 import java.io.*;
-import java.nio.ByteBuffer;
-import java.nio.charset.StandardCharsets;
-import java.security.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.*;
 import java.util.Base64;
 
 public class AuthenticatedCipher {
@@ -48,8 +46,8 @@ public class AuthenticatedCipher {
         System.arraycopy(decoded, IV_SIZE, cipherText, 0, cipherText.length);
 
         byte[] calculatedMac = calculateHMAC(cipherText, key);
-        if(!MessageDigest.isEqual(mac, calculatedMac)) {
-            return null;
+        if (!MessageDigest.isEqual(mac, calculatedMac)) {
+            throw new SecurityException("Authentication failed: HMAC validation failed.");
         }
 
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
@@ -76,45 +74,36 @@ public class AuthenticatedCipher {
 
     public static void main(String[] args) throws Exception {
         if (args.length < 1) {
-            System.out.println("Uso: java AuthenticatedCipher -genkey <ficheiro-chave> | -cipher <entrada> <chave> <saida> | -decipher <entrada> <chave> <saida>");
+            System.out.println("Uso: java AuthenticatedCipher -genkey | -cipher | -decipher");
             return;
         }
 
         String mode = args[0];
+        String input = "trab1/src/main/java/main/mensagem.txt";
+        String keyFile = "trab1/src/main/java/main/chave.key";
+        String output = "trab1/src/main/java/main/mensagem_decifrada.txt";
 
         if (mode.equals("-genkey")) {
-            if (args.length < 2) {
-                System.out.println("Uso: -genkey <ficheiro-chave>");
-                return;
-            }
-            generateKey(args[1]);
+            generateKey(keyFile);
             return;
         }
 
-        if (args.length < 4) {
-            System.out.println("Uso: -cipher|-decipher <entrada> <chave> <saida>");
-            return;
-        }
-
-        String input = args[1];
-        String keyFile = args[2];
-        String output = args[3];
         byte[] key = Files.readAllBytes(Paths.get(keyFile));
 
         if (mode.equals("-cipher")) {
             byte[] data = Files.readAllBytes(Paths.get(input));
             byte[] encryptedData = encrypt(data, key);
             Files.write(Paths.get(output), encryptedData);
-            System.out.println("Arquivo cifrado guardado: " + output);
+            System.out.println("Ficheiro cifrado guardado: " + output);
         } else if (mode.equals("-decipher")) {
-            byte[] encryptedData = Files.readAllBytes(Paths.get(input));
-            byte[] decryptedData = decrypt(encryptedData, key);
-            if (decryptedData == null) {
-                System.out.println("Falha na autenticação.");
-                return;
+            byte[] encryptedData = Files.readAllBytes(Paths.get(output));
+            try {
+                byte[] decryptedData = decrypt(encryptedData, key);
+                Files.write(Paths.get(input), decryptedData);
+                System.out.println("Ficheiro decifrado guardado: " + input);
+            } catch (SecurityException e) {
+                System.out.println("Falha na autenticaçao: " + e.getMessage());
             }
-            Files.write(Paths.get(output), decryptedData);
-            System.out.println("Arquivo decifrado guardado: " + output);
         } else {
             System.out.println("ERRO! Use -genkey, -cipher ou -decipher.");
         }
