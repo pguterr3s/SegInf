@@ -45,7 +45,7 @@ public class AuthenticatedCipher {
         System.arraycopy(decoded, decoded.length - macSize, mac, 0, macSize);
 
         byte[] cipherText = new byte[decoded.length - IV_SIZE - macSize];
-        System.arraycopy(decoded, decoded.length - macSize, cipherText, 0, cipherText.length);
+        System.arraycopy(decoded, IV_SIZE, cipherText, 0, cipherText.length);
 
         byte[] calculatedMac = calculateHMAC(cipherText, key);
         if(!MessageDigest.isEqual(mac, calculatedMac)) {
@@ -75,33 +75,48 @@ public class AuthenticatedCipher {
     }
 
     public static void main(String[] args) throws Exception {
-        if(args.length < 4) {
-            System.out.println("Uso : java AuthenticatedCipher -cipher|-decipher <arquivo> <chave> <saida>");
+        if (args.length < 1) {
+            System.out.println("Uso: java AuthenticatedCipher -genkey <ficheiro-chave> | -cipher <entrada> <chave> <saida> | -decipher <entrada> <chave> <saida>");
             return;
         }
+
         String mode = args[0];
+
+        if (mode.equals("-genkey")) {
+            if (args.length < 2) {
+                System.out.println("Uso: -genkey <ficheiro-chave>");
+                return;
+            }
+            generateKey(args[1]);
+            return;
+        }
+
+        if (args.length < 4) {
+            System.out.println("Uso: -cipher|-decipher <entrada> <chave> <saida>");
+            return;
+        }
+
         String input = args[1];
         String keyFile = args[2];
         String output = args[3];
-
         byte[] key = Files.readAllBytes(Paths.get(keyFile));
 
-        if(mode.equals("-cipher")) {
+        if (mode.equals("-cipher")) {
             byte[] data = Files.readAllBytes(Paths.get(input));
             byte[] encryptedData = encrypt(data, key);
             Files.write(Paths.get(output), encryptedData);
             System.out.println("Arquivo cifrado guardado: " + output);
-        } else if(mode.equals("-decipher")) {
+        } else if (mode.equals("-decipher")) {
             byte[] encryptedData = Files.readAllBytes(Paths.get(input));
             byte[] decryptedData = decrypt(encryptedData, key);
-            if(decryptedData == null) {
+            if (decryptedData == null) {
                 System.out.println("Falha na autenticação.");
                 return;
             }
             Files.write(Paths.get(output), decryptedData);
             System.out.println("Arquivo decifrado guardado: " + output);
         } else {
-            System.out.println("ERRO! Use -cipher ou -decipher.");
+            System.out.println("ERRO! Use -genkey, -cipher ou -decipher.");
         }
     }
 }

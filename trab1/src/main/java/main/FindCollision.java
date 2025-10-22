@@ -1,13 +1,13 @@
 package main;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Scanner;
 
 public class FindCollision {
-
-
-
     private static String calculateH16(String code) throws NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("SHA-256");
         byte[] hash = md.digest(code.getBytes(StandardCharsets.UTF_8));
@@ -28,30 +28,20 @@ public class FindCollision {
         }
     }
 
-    public static void main(String[] args) throws NoSuchAlgorithmException {
-        String badAppCode = """
-                package main;
-                
-                public class BadApp {
-                    private static final String msg = "Hello, I'm the bad app";
-                
-                    public static void main(String[] args){
-                        System.out.println(msg);
-                    }
-                }
-                """;
+    private static String readFile(String filePath) throws FileNotFoundException {
+        StringBuilder sb = new StringBuilder();
+        try (Scanner scanner = new Scanner(new File(filePath))) {
+            while(scanner.hasNextLine()) {
+                sb.append(scanner.nextLine()).append("\n");
+            }
+        }
+        return sb.toString();
+    }
 
-        String goodAppCode = """
-                package main;
-                
-                public class GoodApp {
-                    private static final String msg = "Hello, I'm the good app";
-                    private static final String aaaa= "";
-                    public static void main(String[] args){
-                        System.out.println(msg);
-                    }
-                }
-                """;
+    public static void main(String[] args) throws NoSuchAlgorithmException, FileNotFoundException {
+        String badAppCode = readFile("trab1/src/main/java/main/BadApp.java");
+        String goodAppCode = readFile("trab1/src/main/java/main/GoodApp.java");
+
 
         String h16GoodApp = calculateH16(goodAppCode);
         String equivalent = findMessage(badAppCode, h16GoodApp);
