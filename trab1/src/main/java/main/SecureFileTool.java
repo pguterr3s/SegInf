@@ -74,7 +74,7 @@ public class SecureFileTool {
         kg.init(AES_KEY_SIZE);
         SecretKey k = kg.generateKey();
         Files.write(Paths.get(keyPath), k.getEncoded());
-        System.out.println("Chave: '" + keyPath + "'");
+        System.out.println("Chave gerada: '" + keyPath + "'");
     }
 
     private static void encryptFile(String in, String out, String keyFile) throws Exception {
